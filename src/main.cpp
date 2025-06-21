@@ -23,7 +23,7 @@ long T = 0; //this is the final temp
 
 //@param reg should be supplied in hex
 //@param var is a pointer to the variable that is to be read into
-void readReg(short reg, void* var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values
+void readReg(short reg, short * var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values // ONLY USE FOR SHORT VALUES
   Wire.beginTransmission(0x77);//this is the module address only the first 7 bits
 
   Wire.write(reg);//we want to read from this register
@@ -32,9 +32,25 @@ void readReg(short reg, void* var){ //unsure if I can pass this as a void pointe
 
   Wire.requestFrom(0x77,2,true); //we now request 2 bytes, from the bmp180, this should read from 0xAA and 0X AB respectfully (hopefully) // sends the stop (p) signal once we have read the register
 
-  AC1 = Wire.read();// read in MSB
-  AC1 = AC1 << 8; //shift over 8 bits so we can read in LSB
-  AC1 = AC1 | Wire.read();
+  *var = Wire.read();// read in MSB
+  *var = *var << 8; //shift over 8 bits so we can read in LSB
+  *var = *var | Wire.read();
+
+  //may need to end transmission each time?
+}
+
+void readRegu(short reg, unsigned short * var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values // ONLY USE FOR SHORT VALUES
+  Wire.beginTransmission(0x77);//this is the module address only the first 7 bits
+
+  Wire.write(reg);//we want to read from this register
+
+  Wire.endTransmission(false); //end transmission, but we don't want to send stop, just restart as per datasheet
+
+  Wire.requestFrom(0x77,2,true); //we now request 2 bytes, from the bmp180, this should read from 0xAA and 0X AB respectfully (hopefully) // sends the stop (p) signal once we have read the register
+
+  *var = Wire.read();// read in MSB
+  *var = *var << 8; //shift over 8 bits so we can read in LSB
+  *var = *var | Wire.read();
 
   //may need to end transmission each time?
 }
@@ -58,9 +74,9 @@ void setup() {
   readReg(0xAA,&AC1);
   readReg(0xAC,&AC2);
   readReg(0xAE,&AC3);
-  readReg(0xB0,&AC4);
-  readReg(0xB2,&AC5);
-  readReg(0xB4,&AC6);
+  readRegu(0xB0,&AC4);//these need to be unsigned
+  readRegu(0xB2,&AC5);
+  readRegu(0xB4,&AC6);//
 
   readReg(0XB6,&BB1); //BB1 AS B1 IS RESERVED FOR OTHER FUNCTIONALITY
   readReg(0xB8,&B2);
@@ -129,6 +145,23 @@ void loop() {
   T = (B5 + 8)/pow(2,4);// this should be the final temperature IN 0.1 DEG CEL
 
   T = T/10; //divide by 10 so we are in deg C
+
+  //print variables for debugging
+
+
+  Serial.print("AC1: "); Serial.print(AC1);
+  Serial.print(" AC2: "); Serial.print(AC2);
+  Serial.print(" AC3: "); Serial.print(AC3);
+  Serial.print(" AC4: "); Serial.print(AC4);
+  Serial.print(" AC5: "); Serial.print(AC5);
+  Serial.print(" AC6: "); Serial.print(AC6);
+  Serial.print(" BB1: "); Serial.print(BB1);
+  Serial.print(" B2: "); Serial.print(B2);
+  Serial.print(" MB: "); Serial.print(MB);
+  Serial.print(" MC: "); Serial.print(MC);
+  Serial.print(" MD: "); Serial.print(MD);
+  Serial.print(" UT: "); Serial.print(UT);
+  Serial.print(" T: "); Serial.println(T);
 
 
 
