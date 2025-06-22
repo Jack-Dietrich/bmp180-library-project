@@ -4,18 +4,18 @@
 
 
 /*Variable definitions*/
-short AC1 = 0;
-short AC2 = 0;
-short AC3 = 0;
-unsigned short AC4 = 0;
-unsigned short AC5 = 0;
-unsigned short AC6 = 0;
+short AC1 = 408;
+short AC2 = -72;
+short AC3 = -14383;
+unsigned short AC4 = 32741;
+unsigned short AC5 = 32757;
+unsigned short AC6 = 23153;
 
-short BB1 = 0; //had to change this from B1 as it was defined in wire.h
-short B2 = 0;
-short MB = 0;
-short MC = 0;
-short MD = 0;
+short BB1 = 6190; //had to change this from B1 as it was defined in wire.h
+short B2 = 4;
+short MB = -32768;
+short MC = -8711;
+short MD = 2868;
 
 long UT = 0;
 long T = 0; //this is the final temp
@@ -23,34 +23,50 @@ long T = 0; //this is the final temp
 
 //@param reg should be supplied in hex
 //@param var is a pointer to the variable that is to be read into
-void readReg(short reg, short * var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values // ONLY USE FOR SHORT VALUES
+void readReg(int reg, short * var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values // ONLY USE FOR SHORT VALUES
   Wire.beginTransmission(0x77);//this is the module address only the first 7 bits
 
   Wire.write(reg);//we want to read from this register
 
-  Wire.endTransmission(false); //end transmission, but we don't want to send stop, just restart as per datasheet
+  Wire.endTransmission(); //end transmission, but we don't want to send stop, just restart as per datasheet
 
-  Wire.requestFrom(0x77,2,true); //we now request 2 bytes, from the bmp180, this should read from 0xAA and 0X AB respectfully (hopefully) // sends the stop (p) signal once we have read the register
+  Wire.requestFrom(0x77,2); //we now request 2 bytes, from the bmp180, this should read from 0xAA and 0X AB respectfully (hopefully) // sends the stop (p) signal once we have read the register
 
-  *var = Wire.read();// read in MSB
-  *var = *var << 8; //shift over 8 bits so we can read in LSB
-  *var = *var | Wire.read();
+  
+  *var = (Wire.read() << 8) | Wire.read();
+
+
 
   //may need to end transmission each time?
+
+  Wire.endTransmission();
+
+  /*
+  Changes
+  -Added end transmission, removed true from requestfrom 
+  -made the read more succinct, fixed multiple derefrences
+  
+  */
 }
 
-void readRegu(short reg, unsigned short * var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values // ONLY USE FOR SHORT VALUES
+void readRegu(int reg, unsigned short * var){ //unsure if I can pass this as a void pointer, I need both short and unsigned short values // ONLY USE FOR SHORT VALUES
+
   Wire.beginTransmission(0x77);//this is the module address only the first 7 bits
 
   Wire.write(reg);//we want to read from this register
 
-  Wire.endTransmission(false); //end transmission, but we don't want to send stop, just restart as per datasheet
+  Wire.endTransmission(); //end transmission, but we don't want to send stop, just restart as per datasheet
 
-  Wire.requestFrom(0x77,2,true); //we now request 2 bytes, from the bmp180, this should read from 0xAA and 0X AB respectfully (hopefully) // sends the stop (p) signal once we have read the register
+  Wire.requestFrom(0x77,2); //we now request 2 bytes, from the bmp180, this should read from 0xAA and 0X AB respectfully (hopefully) // sends the stop (p) signal once we have read the register
 
-  *var = Wire.read();// read in MSB
-  *var = *var << 8; //shift over 8 bits so we can read in LSB
-  *var = *var | Wire.read();
+  
+  *var = (Wire.read() << 8) | Wire.read();
+
+
+  //may need to end transmission each time?
+
+  Wire.endTransmission();
+
 
   //may need to end transmission each time?
 }
@@ -66,11 +82,13 @@ void setup() {
   -There may be a problem with 7 or 8 bit addressing with arduino wire library
   */
 
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("Entering setup");
   Wire.begin(); //this should send the start condition
   
-  //READ a registers
+
+
+
   readReg(0xAA,&AC1);
   readReg(0xAC,&AC2);
   readReg(0xAE,&AC3);
@@ -83,12 +101,8 @@ void setup() {
   readReg(0xBA,&MB);
   readReg(0xBC,&MC);
   readReg(0xBE,&MD);
-
-
-
-
-
-
+  
+  
 
 
 
@@ -131,14 +145,14 @@ void loop() {
 
   Serial.print("here");
 
-  UT = MSB << 8 + LSB; //unsure about correct presidence here, shift should have higher presidence but that may not be intended
+  UT = (MSB << 8) + LSB; //unsure about correct presidence here, shift should have higher presidence but that may not be intended
 
 
   //calculate true temperature
 
-  long X1 = (UT - AC6) * AC5/(pow(2,15));
+  long X1 = (UT - AC6) * (AC5/(pow(2,15)));
 
-  long X2 = MC * (pow(2,11))/(X1+MD);
+  long X2 = MC * ((pow(2,11))/(X1+MD));
 
   long B5 = X1 + X2;
 
