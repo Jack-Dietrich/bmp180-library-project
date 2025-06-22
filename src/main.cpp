@@ -19,6 +19,7 @@ short MD = 2868;
 
 long UT = 0;
 long T = 0; //this is the final temp
+long prevT = 0;
 /*End of variable definitions*/
 
 //@param reg should be supplied in hex
@@ -115,7 +116,6 @@ void loop() {
   
   //we now have initalized everything, we move to the 2nd box on page 15 read uncompensated temperature value
 
-  Serial.println("In the loop");
 
   Wire.beginTransmission(0x77); //start transmission in write mode
 
@@ -143,7 +143,7 @@ void loop() {
   Wire.requestFrom(0x77,1);
   LSB = Wire.read();
 
-  Serial.print("here");
+
 
   UT = (MSB << 8) + LSB; //unsure about correct presidence here, shift should have higher presidence but that may not be intended
 
@@ -163,29 +163,19 @@ void loop() {
   //print variables for debugging
 
 
-  Serial.print("AC1: "); Serial.print(AC1);
-  Serial.print(" AC2: "); Serial.print(AC2);
-  Serial.print(" AC3: "); Serial.print(AC3);
-  Serial.print(" AC4: "); Serial.print(AC4);
-  Serial.print(" AC5: "); Serial.print(AC5);
-  Serial.print(" AC6: "); Serial.print(AC6);
-  Serial.print(" BB1: "); Serial.print(BB1);
-  Serial.print(" B2: "); Serial.print(B2);
-  Serial.print(" MB: "); Serial.print(MB);
-  Serial.print(" MC: "); Serial.print(MC);
-  Serial.print(" MD: "); Serial.print(MD);
-  Serial.print(" UT: "); Serial.print(UT);
-  Serial.print(" T: "); Serial.println(T);
 
-
-
-
+  if(prevT != T){
+    
   Serial.print("Temperature is: ");
   Serial.print(T);
   Serial.print(" degrees Celcius");
   Serial.println();//make a new line after enverything
+  prevT = T;
+  vTaskDelay(1000);
 
-  delay(100); //delay by 100ms so we are not being overwhelmed
+  }
+
+
 
 
 
