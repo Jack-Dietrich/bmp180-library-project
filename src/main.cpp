@@ -2,6 +2,33 @@
 #include <Wire.h> //to help abstract away library code
 #include <cmath> //for pow
 
+//wifi includes
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+//file reading includes
+#include <fstream>
+#include <string>
+
+
+/*Led's
+
+*/
+
+const short GREENLED = 23;
+const short REDLED = 19;
+const short BLUELED = 18;
+
+
+/*Wifi global vars*/
+
+
+const char * ssid = "";
+const char * password = "";
+const char * serverName = "";
+
+
+/*End of Wifi stuff*/
 
 /*Variable definitions*/
 short AC1 = 408;
@@ -64,12 +91,14 @@ void readRegu(int reg, unsigned short * var){ //unsure if I can pass this as a v
   *var = (Wire.read() << 8) | Wire.read();
 
 
-  //may need to end transmission each time?
+
 
   Wire.endTransmission();
 
 
-  //may need to end transmission each time?
+
+
+
 }
 
 
@@ -83,6 +112,14 @@ void setup() {
   -There may be a problem with 7 or 8 bit addressing with arduino wire library
   */
 
+  /*Setup LED's*/
+
+  pinMode(REDLED,OUTPUT);
+  pinMode(BLUELED,OUTPUT);
+  pinMode(GREENLED,OUTPUT);
+
+  //
+
   Serial.begin(115200);
   Serial.println("Entering setup");
   Wire.begin(); //this should send the start condition
@@ -93,7 +130,7 @@ void setup() {
   readReg(0xAA,&AC1);
   readReg(0xAC,&AC2);
   readReg(0xAE,&AC3);
-  readRegu(0xB0,&AC4);//these need to be unsigned
+  readRegu(0xB0,&AC4);//these need to be unsigned as per datasheet
   readRegu(0xB2,&AC5);
   readRegu(0xB4,&AC6);//
 
@@ -104,7 +141,30 @@ void setup() {
   readReg(0xBE,&MD);
   
   
+  //setup wifi
 
+  Serial.println(ssid);
+  Serial.println(password);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+
+  WiFi.begin(ssid, password); //need to cast the strings to char pointers
+
+  Serial.println("Connecting");
+  
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("Connected, ip: ");
+  Serial.print(WiFi.localIP());
+
+  //turn on blue led once connected to wifi
+  digitalWrite(BLUELED,HIGH);
 
 
 
@@ -145,7 +205,7 @@ void loop() {
 
 
 
-  UT = (MSB << 8) + LSB; //unsure about correct presidence here, shift should have higher presidence but that may not be intended
+  UT = (MSB << 8) + LSB; 
 
 
   //calculate true temperature
@@ -171,39 +231,47 @@ void loop() {
   Serial.print(" degrees Celcius");
   Serial.println();//make a new line after enverything
   prevT = T;
-  vTaskDelay(1000);
+
+
+  //we now want to send this temp to the web server
+  if(WiFi.status() == WL_CONNECTED){//if we are connected to internet
+    HTTPClient http; //create new http client
+    WiFiClient client;
+    
+    http.begin(client,serverName);
+  
+    //headers
+    http.addHeader("Content-Type","application/json; charset = utf-8");
+
+    //data
+    std::string data = "{\"temp\" : \"" +  std::to_string(T) + "\"}" ;
+    
+    int httpResponseCode = http.POST(data.c_str()); //possible source of error if c_str does not do what I think it does
+
+    Serial.print("HTTP Response Code: ");
+    Serial.println(httpResponseCode);
+    if(httpResponseCode == 200){//flash green led when we have a successful POST request.
+      digitalWrite(GREENLED,HIGH);
+      delay(200);
+      digitalWrite(GREENLED,LOW);
+    }else{
+      digitalWrite(REDLED,HIGH);
+    }
+  }
+
+  //
+  vTaskDelay(10000);//delay for 10 sec
+
+  digitalWrite(REDLED,LOW);//reset ledled if we had an error.
 
   }
 
 
-
-
-
-
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
 }
 
 /*
-
-TODO:
--add a left bitwise shift as we are currently reading in the first byte than oring it which is not correct
-
-0000 0000 0000 0000
-
-read
-
-0000 0000 1234 5678
-
-//first value has been read, we now should shift it 2 bytes
-
-1234 5678 0000 0000
-
-then or in second value
-
+Current power consumption:
+240mw
 
 
 */

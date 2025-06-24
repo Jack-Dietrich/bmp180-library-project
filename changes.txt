@@ -1,0 +1,9 @@
+Tue 24 June
+----------
+Changes:
+-implemented get and post functionality with esp32
+
+Todo:
+-Increase power efficiency
+-Figure out a way to securely store and import passwords.
+-
